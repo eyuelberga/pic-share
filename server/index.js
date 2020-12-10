@@ -8,11 +8,15 @@ var io = require("socket.io")(http, {
     origin: "*",
   },
 });
-app.use(express.static('./client/build'));
 
-app.get('*', (req,res)=>{
-    res.sendFile(path.resolve(__dirname, "client","build","index.html"));
-})
+if (process.env.NODE_ENV === "production"){
+  app.use(express.static('./dist/build'));
+
+  app.get('*', (req,res)=>{
+    res.sendFile(path.resolve(__dirname,"dist","build","index.html"));
+  });
+} 
+
 const logger = require("./utils/logger");
 const SOCKET_EVENT = {
   CONNECTED: "connected",
@@ -74,6 +78,6 @@ io.on("connection", (socket) => {
     logger.log(SOCKET_EVENT.REJECT_REQUEST, username);
   });
 });
-const port = process.env.PORT || 8060;
+const port = process.env.PORT || 7000;
 http.listen(port);
 logger.log("server listening on port", port);

@@ -1,14 +1,58 @@
 {
-  "name": "pic-share-server",
-  "version": "1.0.0",
-  "main": "index.js",
-  "license": "MIT",
-  "scripts": {
-    "start": "node server.js"
-  },
+  "name": "pic-share",
+  "version": "0.1.0",
+  "private": true,
+  "proxy": "http://localhost:7000",
   "dependencies": {
+    "@testing-library/jest-dom": "^5.11.4",
+    "@testing-library/react": "^11.1.0",
+    "@testing-library/user-event": "^12.1.10",
+    "concurrently": "^5.3.0",
+    "dotenv": "^8.2.0",
     "express": "^4.17.1",
+    "generate-avatar": "^1.4.6",
+    "nodemon": "^2.0.6",
+    "react": "^17.0.1",
+    "react-bulma-components": "^3.4.0",
+    "react-dom": "^17.0.1",
+    "react-dropzone": "^11.2.4",
+    "react-scripts": "4.0.1",
+    "simple-peer": "^9.9.3",
     "socket.io": "^3.0.3",
-    "username-generator": "^1.1.0"
+    "socket.io-client": "^3.0.4",
+    "username-generator": "^1.1.0",
+    "web-vitals": "^0.2.4"
+  },
+   "engines": {
+    "node": "14.x"
+  },
+  "scripts": {
+    "build:client": "react-scripts build",
+    "test:client": "react-scripts test",
+    "eject:client": "react-scripts eject",
+    "dev:server": "nodemon -r dotenv/config ./server/index.js",
+    "start:server":"NODE_ENV=production node ./server/index.js",
+    "dev:client": "react-scripts start",
+    "dev": "concurrently \"yarn run dev:server\" \"yarn run dev:client\"",
+    "build":"mkdir dist && yarn run build:client && mv build dist",
+    "start":"yarn run start:server"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
   }
 }
