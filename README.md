@@ -1,4 +1,4 @@
-<a href="https://aimeos.org/">
+<a href="https://pic-p2p-share.herokuapp.com">
     <img src="img/logo.png" alt="Pic Share logo" title="Pic Share" align="right" height="100" />
 </a>
 
