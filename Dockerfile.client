@@ -1,0 +1,7 @@
+FROM node:14
+COPY img img
+COPY node_modules node_modules
+COPY public public
+COPY src src
+COPY package.json package.json
+CMD ["npm", "run", "start:client"]
