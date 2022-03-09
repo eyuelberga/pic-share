@@ -1,0 +1,1 @@
+docker build -t webrtc-p2p-client -f Dockerfile.client .
