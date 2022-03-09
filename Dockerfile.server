@@ -1,0 +1,5 @@
+FROM node:14
+COPY node_modules node_modules
+COPY server server
+COPY package.json package.json
+CMD ["npm", "run", "start:server"]
