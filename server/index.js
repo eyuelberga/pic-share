@@ -28,16 +28,24 @@ const SOCKET_EVENT = {
   SEND_REQUEST: "send_request",
   ACCEPT_REQUEST: "accept_request",
   REJECT_REQUEST: "reject_request",
-  REGISTER_PARTITIONS: "register_partitions"
+  // Distrubuted sharing
+  REGISTER_PARTITIONS: "register_partitions",
+  REQUEST_PARTITION: "request_partition",
 };
 const users = {};
-const usersList = (usersObj)=>{
-	const list = [];
-	Object.keys(usersObj).forEach(username=>{
-		list.push({username, timestamp:usersObj[username].timestamp});
-	})
-	return list;
+const usersList = (usersObj) => {
+  const list = [];
+  Object.keys(usersObj).forEach(username => {
+    list.push({
+      username,
+      timestamp: usersObj[username].timestamp,
+      socketId: usersObj[username].id,
+      partitions: usersObj[username].partitions
+    });
+  })
+  return list;
 }
+
 io.on("connection", (socket) => {
   //generate username against a socket connection and store it
   const username = usernameGen.generateUsername("-");
@@ -78,6 +86,14 @@ io.on("connection", (socket) => {
     io.to(users[to].id).emit(SOCKET_EVENT.REQUEST_REJECTED);
     logger.log(SOCKET_EVENT.REJECT_REQUEST, username);
   });
+
+  socket.on(SOCKET_EVENT.REGISTER_PARTITIONS, ({ from, partitions }) => {
+    users[from].partitions = partitions;
+    // broadcast the partitions
+    console.log(users);
+   io.sockets.emit(SOCKET_EVENT.USERS_LIST, usersList(users));
+  })
+
 });
 const port = process.env.PORT || 7000;
 http.listen(port);
