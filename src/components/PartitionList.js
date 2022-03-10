@@ -17,7 +17,13 @@ export default function PartitionList({ partitionList, usersList }) {
             </ul>
             <p>Partitions available on all nodes:</p>
             <ul>
-                {usersList.map((u, i) => { if (u.partitions) return (<li key={i}>{u.username}: {u.partitions.toString()}</li>); else return null; })}
+                {usersList.map((u, i) => {
+                    if (u.partitions) {
+                        return (<li key={i}>{u.username}: {u.partitions.toString()}</li>);
+                    } else {
+                        return null;
+                    }
+                })}
             </ul>
         </div>
     )

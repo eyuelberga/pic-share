@@ -9,13 +9,13 @@ var io = require("socket.io")(http, {
   },
 });
 
-if (process.env.NODE_ENV === "production"){
+if (process.env.NODE_ENV === "production") {
   app.use(express.static('./dist/build'));
 
-  app.get('*', (req,res)=>{
-    res.sendFile(path.resolve(__dirname,"dist","build","index.html"));
+  app.get('*', (req, res) => {
+    res.sendFile(path.resolve(__dirname, "dist", "build", "index.html"));
   });
-} 
+}
 
 const logger = require("./utils/logger");
 const SOCKET_EVENT = {
@@ -31,6 +31,7 @@ const SOCKET_EVENT = {
   // Distrubuted sharing
   REGISTER_PARTITIONS: "register_partitions",
   REQUEST_PARTITION: "request_partition",
+  DOWNLOAD_REQUESTED: "download_requested",
 };
 const users = {};
 const usersList = (usersObj) => {
@@ -56,13 +57,13 @@ io.on("connection", (socket) => {
   // send back username
   socket.emit(SOCKET_EVENT.CONNECTED, username);
   // send online users list
-  io.sockets.emit(SOCKET_EVENT.USERS_LIST, usersList(users) );
+  io.sockets.emit(SOCKET_EVENT.USERS_LIST, usersList(users));
 
   socket.on(SOCKET_EVENT.DISCONNECTED, () => {
     // remove user from the list
     delete users[username];
     // send current users list
-    io.sockets.emit(SOCKET_EVENT.USERS_LIST, usersList(users) );
+    io.sockets.emit(SOCKET_EVENT.USERS_LIST, usersList(users));
     logger.log(SOCKET_EVENT.DISCONNECTED, username);
   });
 
@@ -77,7 +78,7 @@ io.on("connection", (socket) => {
 
   socket.on(SOCKET_EVENT.ACCEPT_REQUEST, ({ signal, to }) => {
     // tell user the request has been accepted
-    io.to(users[to].id).emit(SOCKET_EVENT.REQUEST_ACCEPTED, {signal});
+    io.to(users[to].id).emit(SOCKET_EVENT.REQUEST_ACCEPTED, { signal });
     logger.log(SOCKET_EVENT.ACCEPT_REQUEST, username);
   });
 
@@ -91,9 +92,12 @@ io.on("connection", (socket) => {
     users[from].partitions = partitions;
     // broadcast the partitions
     console.log(users);
-   io.sockets.emit(SOCKET_EVENT.USERS_LIST, usersList(users));
+    io.sockets.emit(SOCKET_EVENT.USERS_LIST, usersList(users));
   })
 
+  socket.on(SOCKET_EVENT.REQUEST_PARTITION, ({ from, to, partition }) => {
+    io.to(users[to].id).emit(SOCKET_EVENT.DOWNLOAD_REQUESTED, { from, partition });
+  })
 });
 const port = process.env.PORT || 7000;
 http.listen(port);
