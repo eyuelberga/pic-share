@@ -12,7 +12,11 @@ services:
     image: webrtc-p2p-client
     ports:
       - 3020:3000
+    environment:
+      - PARTITION_LIST=00,01,02
   client3:
     image: webrtc-p2p-client
     ports:
       - 3030:3000
+    environment:
+      - PARTITION_LIST=03,04,05

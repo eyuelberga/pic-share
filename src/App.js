@@ -9,6 +9,7 @@ import ShareRequest from "./components/ShareRequest";
 import ImageUploader from "./components/ImageUploader";
 import EmptyPlaceholder from "./components/EmptyPlaceholder";
 import Loader from "./components/Loader";
+import PartitionList from './components/PartitionList';
 import logo from './logo.png'
 
 function App() {
@@ -115,6 +116,7 @@ function App() {
 
     };
     const SERVER_URL = "ws://localhost:7000/";
+    console.log(`chunk list: ${process.env.REACT_APP_CHUNK_LIST}`);
     useEffect(() => {
         socket.current = io.connect(SERVER_URL);
 
@@ -202,9 +204,8 @@ function App() {
                                   subtext="Share your username with others so they can send you a picture"
                                   color="#EFFFFF"
                         />
-                        <ImageUploader setFile={setFile}/>
-
-
+                        {/* <ImageUploader setFile={setFile}/> */}
+                        <PartitionList partitionList={process.env.REACT_APP_PARTITION_LIST}/>
                     </Columns.Column>
                     <Columns.Column>
                         {usersList.length > 1 ? usersList.map(({username, timestamp}) => username !== myUsername &&

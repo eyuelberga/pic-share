@@ -28,6 +28,7 @@ const SOCKET_EVENT = {
   SEND_REQUEST: "send_request",
   ACCEPT_REQUEST: "accept_request",
   REJECT_REQUEST: "reject_request",
+  REGISTER_PARTITIONS: "register_partitions"
 };
 const users = {};
 const usersList = (usersObj)=>{
