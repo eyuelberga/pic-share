@@ -25,8 +25,8 @@ function App() {
     const [usersList, setUsersList] = useState([]);
     // const [peerUsername, setPeerUsername] = useState("");
     // const [peerSignal, setPeerSignal] = useState("");
-    const [expectedPartitionIds, setExpectedPartitionIds] = useState([]);
-    const [allPartitions, setAllPartitions] = useState({}); // {'00': <binary data for large00>, '01': <binary data of large01>, ...}}
+    var expectedPartitionIds = [];
+    var allPartitions = {}; // {'00': <binary data for large00>, '01': <binary data of large01>, ...}}
     const SOCKET_EVENT = {
         CONNECTED: "connected",
         DISCONNECTED: "disconnect",
@@ -71,7 +71,7 @@ function App() {
                 console.log(`Start receiving partion: ${partitionName}`);
             } else if (data.toString() === 'EOF') {
                 // Once, all the chunks are received, combine them to form a Blob
-                setAllPartitions({ ...allPartitions, partitionName: fileChunks })
+                allPartitions = { ...allPartitions, partitionName: fileChunks };
                 var keys = Object.keys(allPartitions);
                 if (keys.length === expectedPartitionIds.length) {
                     // FIXME merge the chunks together
@@ -106,6 +106,8 @@ function App() {
             config: peerConfig,
         });
         peer.on("signal", (data) => {
+            console.log('sendRequest(), to: ', username)
+            console.log('myUsername: ', myUsername);
             socket.current.emit(SOCKET_EVENT.SEND_REQUEST, {
                 to: username,
                 signal: data,
@@ -135,13 +137,19 @@ function App() {
     };
 
     const downloadPartitions = () => {
+        console.log('(downloadPartitions) userList: ', usersList);
+        console.log('myUsername: ', myUsername);
         usersList.forEach(u => {
-            var partitions = u.partitions;
-            setExpectedPartitionIds([...expectedPartitionIds, partitions]);
-            for (const partition in partitions) {
-                const filename = `large${partition}`;
-                console.log(`Start downloading ${filename}...`);
-                socket.current.emit(SOCKET_EVENT.REQUEST_PARTITION, { from: myUsername, to: u.username, partition: partition })
+            if (myUsername !== u.username) {
+                var partitions = u.partitions;
+                console.debug('u: ', u);
+                console.debug('partitions:', partitions)
+                expectedPartitionIds = [...expectedPartitionIds, ...partitions];
+                for (const partition of partitions) {
+                    const filename = `large${partition}`;
+                    console.log(`Start downloading ${filename}...`);
+                    socket.current.emit(SOCKET_EVENT.REQUEST_PARTITION, { from: myUsername, to: u.username, partition: partition })
+                }
             }
         })
         expectedPartitionIds.sort();
@@ -184,8 +192,9 @@ function App() {
             peerInstance.current.signal(signal)
         });
 
-        socket.current.on(SOCKET_EVENT.DOWNLOAD_REQUESTED, ({ to, partition }) => {
-            sendRequest(to, partition);
+        socket.current.on(SOCKET_EVENT.DOWNLOAD_REQUESTED, ({ from, partition }) => {
+            console.log('SOCKET_EVENT.DOWNLOAD_REQUESTED, to: ', from);
+            sendRequest(from, partition);
         })
     }, []);
     // const [file, setFile] = useState(null);

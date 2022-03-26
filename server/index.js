@@ -69,6 +69,8 @@ io.on("connection", (socket) => {
 
   socket.on(SOCKET_EVENT.SEND_REQUEST, ({ username, signal, to }) => {
     // tell user that a request has been sent
+    logger.log('to: ', to);
+    logger.log('username: ', username);
     io.to(users[to].id).emit(SOCKET_EVENT.REQUEST_SENT, {
       signal,
       username,
@@ -91,11 +93,12 @@ io.on("connection", (socket) => {
   socket.on(SOCKET_EVENT.REGISTER_PARTITIONS, ({ from, partitions }) => {
     users[from].partitions = partitions;
     // broadcast the partitions
-    console.log(users);
+    console.log('users: ', users);
     io.sockets.emit(SOCKET_EVENT.USERS_LIST, usersList(users));
   })
 
   socket.on(SOCKET_EVENT.REQUEST_PARTITION, ({ from, to, partition }) => {
+    console.log(`Requesting partition ${partition} from user ${to} by user ${from}`)
     io.to(users[to].id).emit(SOCKET_EVENT.DOWNLOAD_REQUESTED, { from, partition });
   })
 });
