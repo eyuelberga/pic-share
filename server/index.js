@@ -67,20 +67,21 @@ io.on("connection", (socket) => {
     logger.log(SOCKET_EVENT.DISCONNECTED, username);
   });
 
-  socket.on(SOCKET_EVENT.SEND_REQUEST, ({ username, signal, to }) => {
+  socket.on(SOCKET_EVENT.SEND_REQUEST, ({ username, signal, to, partition }) => {
     // tell user that a request has been sent
     logger.log('to: ', to);
     logger.log('username: ', username);
     io.to(users[to].id).emit(SOCKET_EVENT.REQUEST_SENT, {
       signal,
       username,
+      partition,
     });
     logger.log(SOCKET_EVENT.SEND_REQUEST, username);
   });
 
-  socket.on(SOCKET_EVENT.ACCEPT_REQUEST, ({ signal, to }) => {
+  socket.on(SOCKET_EVENT.ACCEPT_REQUEST, ({ signal, to, partition }) => {
     // tell user the request has been accepted
-    io.to(users[to].id).emit(SOCKET_EVENT.REQUEST_ACCEPTED, { signal });
+    io.to(users[to].id).emit(SOCKET_EVENT.REQUEST_ACCEPTED, { signal, partition });
     logger.log(SOCKET_EVENT.ACCEPT_REQUEST, username);
   });
 
@@ -99,7 +100,7 @@ io.on("connection", (socket) => {
 
   socket.on(SOCKET_EVENT.REQUEST_PARTITION, ({ from, to, partition }) => {
     console.log(`Requesting partition ${partition} from user ${to} by user ${from}`)
-    io.to(users[to].id).emit(SOCKET_EVENT.DOWNLOAD_REQUESTED, { from, partition });
+    io.to(users[to].id).emit(SOCKET_EVENT.DOWNLOAD_REQUESTED, { from, partition, to });
   })
 });
 const port = process.env.PORT || 7000;

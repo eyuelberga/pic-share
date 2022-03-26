@@ -14,7 +14,7 @@ import logo from './logo.png'
 
 function App() {
     const socket = useRef();
-    const peerInstance = useRef();
+    const peerInstances = useRef({});
     // const [requested, setRequested] = useState(false);
     // const [sentRequest, setSentRequest] = useState(false);
     // const [sending, setSending] = useState(false);
@@ -51,14 +51,14 @@ function App() {
             { urls: 'stun:stun4.l.google.com:19302' },
         ],
     };
-    const acceptRequest = (senderUsername, senderSignal) => {
+    const acceptRequest = (senderUsername, senderSignal, partition) => {
         //setRequested(false);
         const peer = new Peer({
             initiator: false,
             trickle: false
         });
         peer.on("signal", (data) => {
-            socket.current.emit(SOCKET_EVENT.ACCEPT_REQUEST, { signal: data, to: senderUsername });
+            socket.current.emit(SOCKET_EVENT.ACCEPT_REQUEST, { signal: data, to: senderUsername, partition: partition });
         });
         peer.on("connect", () => {
             //setReceiving(true);
@@ -91,13 +91,14 @@ function App() {
         });
 
         peer.signal(senderSignal);
-        peerInstance.current = peer;
+        console.log('senderSignal: ', senderSignal);
+        peerInstances.current[partition] = peer;
     };
     // const rejectRequest = () => {
     //     socket.current.emit(SOCKET_EVENT.REJECT_REQUEST, { to: peerUsername });
     //     setRequested(false);
     // };
-    const sendRequest = (username, partition) => {
+    const sendRequest = (username, partition, src) => {
         //setLoading(true);
         //setPeerUsername(username);
         const peer = new Peer({
@@ -107,11 +108,12 @@ function App() {
         });
         peer.on("signal", (data) => {
             console.log('sendRequest(), to: ', username)
-            console.log('myUsername: ', myUsername);
+
             socket.current.emit(SOCKET_EVENT.SEND_REQUEST, {
                 to: username,
                 signal: data,
-                username: myUsername,
+                username: src,
+                partition: partition,
             });
             //setSentRequest(true);
             //setLoading(false);
@@ -133,7 +135,7 @@ function App() {
             peer.send('EOF');
             //setSending(false);
         });
-        peerInstance.current = peer;
+        peerInstances.current[partition] = peer;
     };
 
     const downloadPartitions = () => {
@@ -181,20 +183,22 @@ function App() {
             setUsersList(users)
         });
 
-        socket.current.on(SOCKET_EVENT.REQUEST_SENT, ({ signal, username }) => {
+        socket.current.on(SOCKET_EVENT.REQUEST_SENT, ({ signal, username, partition }) => {
             // setPeerUsername(username);
             // setPeerSignal(signal);
             // setRequested(true);
-            acceptRequest(username, signal);
+            acceptRequest(username, signal, partition);
         });
 
-        socket.current.on(SOCKET_EVENT.REQUEST_ACCEPTED, ({ signal }) => {
-            peerInstance.current.signal(signal)
+        socket.current.on(SOCKET_EVENT.REQUEST_ACCEPTED, ({ signal, partition }) => {
+            console.log('signal: ', signal);
+            peerInstances.current[partition].signal(signal);
         });
 
-        socket.current.on(SOCKET_EVENT.DOWNLOAD_REQUESTED, ({ from, partition }) => {
-            console.log('SOCKET_EVENT.DOWNLOAD_REQUESTED, to: ', from);
-            sendRequest(from, partition);
+        socket.current.on(SOCKET_EVENT.DOWNLOAD_REQUESTED, ({ from, partition, to }) => {
+            console.log('SOCKET_EVENT.DOWNLOAD_REQUESTED, to: ', to);
+            console.log('SOCKET_EVENT.DOWNLOAD_REQUESTED, from: ', from);
+            sendRequest(from, partition, to);
         })
     }, []);
     // const [file, setFile] = useState(null);
