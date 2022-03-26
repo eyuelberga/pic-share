@@ -1,6 +1,6 @@
 import 'react-bulma-components/dist/react-bulma-components.min.css';
 import "./components/EmptyPlaceholder.css"
-import { Button, Container, Columns, Navbar } from 'react-bulma-components/dist';
+import { Button, Container, Columns, Navbar, Modal, Image } from 'react-bulma-components/dist';
 import React, { useRef, useEffect, useState } from "react";
 import io from "socket.io-client";
 import Peer from "simple-peer";
@@ -25,8 +25,8 @@ function App() {
     const [usersList, setUsersList] = useState([]);
     // const [peerUsername, setPeerUsername] = useState("");
     // const [peerSignal, setPeerSignal] = useState("");
-    var expectedPartitionIds = [];
-    var allPartitions = {}; // {'00': <binary data for large00>, '01': <binary data of large01>, ...}}
+    const expectedPartitionIds = useRef([]);
+    const allPartitions = useRef({}); // {'00': <binary data for large00>, '01': <binary data of large01>, ...}}
     const SOCKET_EVENT = {
         CONNECTED: "connected",
         DISCONNECTED: "disconnect",
@@ -63,28 +63,38 @@ function App() {
         peer.on("connect", () => {
             //setReceiving(true);
         });
-        var partitionName;
         const fileChunks = [];
         peer.on('data', data => {
             if (data.toString().startsWith('PARTITION:')) {
-                partitionName = data.toString().split(':')[1];
+                const partitionName = data.toString().split(':')[1];
                 console.log(`Start receiving partion: ${partitionName}`);
             } else if (data.toString() === 'EOF') {
+                console.log('Finished receiving partition: ')
                 // Once, all the chunks are received, combine them to form a Blob
-                allPartitions = { ...allPartitions, partitionName: fileChunks };
-                var keys = Object.keys(allPartitions);
-                if (keys.length === expectedPartitionIds.length) {
-                    // FIXME merge the chunks together
+                allPartitions.current[partition] = fileChunks;
+                var keys = Object.keys(allPartitions.current);
+                console.log('allPartitions: ', allPartitions.current);
+                console.log('expectedPartitionIds: ', expectedPartitionIds.current);
+                if (keys.length === expectedPartitionIds.current.length) {
+                    console.log('---> merging all partitions into one file')
                     var allChunks = [];
-                    for (const paritionId in expectedPartitionIds) {
-                        allChunks = [...allChunks, allPartitions[paritionId]];
+                    for (const partitionId of expectedPartitionIds.current) {
+                        console.log('partitionId: ', partitionId);
+                        allChunks = [...allChunks, ...allPartitions.current[partitionId]];
                     }
+                    console.log('allChunks: ', allChunks);
                     const file = new Blob(allChunks);
                     setReceivedFilePreview(URL.createObjectURL(file));
+                }
+                else {
+                    console.log('More partitions to download');
                 }
                 // setReceiving(false);
             } else {
                 // Keep appending various file chunks
+                console.log('partition: ', partition);
+                console.log('data: ', data);
+                console.log('fileChunks: ', fileChunks)
                 fileChunks.push(data);
             }
 
@@ -121,12 +131,14 @@ function App() {
         peer.on("connect", async () => {
             // setSending(true);
             //setSentRequest(false);
-            const path = `/sample_data/large${partition}`
+            const path = `/sample_data/largepic${partition}`
             let file = new File([await (await fetch(path)).blob()], path);
             let buffer = await file.arrayBuffer();
             const chunkSize = 16 * 1024;
             peer.send(`PARTITION:${partition}`);
             while (buffer.byteLength) {
+                console.log('partition: ', partition);
+                console.log('remaining buffer length: ', buffer.byteLength);
                 const chunk = buffer.slice(0, chunkSize);
                 buffer = buffer.slice(chunkSize, buffer.byteLength);
                 // Off goes the chunk!
@@ -142,11 +154,13 @@ function App() {
         console.log('(downloadPartitions) userList: ', usersList);
         console.log('myUsername: ', myUsername);
         usersList.forEach(u => {
-            if (myUsername !== u.username) {
-                var partitions = u.partitions;
+            var partitions = u.partitions;
+            if (partitions) {
                 console.debug('u: ', u);
                 console.debug('partitions:', partitions)
-                expectedPartitionIds = [...expectedPartitionIds, ...partitions];
+                expectedPartitionIds.current = [...expectedPartitionIds.current, ...partitions];
+                //remove duplicate
+                expectedPartitionIds.current = [...new Set(expectedPartitionIds.current)];
                 for (const partition of partitions) {
                     const filename = `large${partition}`;
                     console.log(`Start downloading ${filename}...`);
@@ -154,7 +168,7 @@ function App() {
                 }
             }
         })
-        expectedPartitionIds.sort();
+        expectedPartitionIds.current.sort();
     }
 
     const SERVER_URL = "ws://localhost:7000/";
@@ -224,40 +238,17 @@ function App() {
                     <Navbar.Burger />
                 </Navbar.Brand>
             </Navbar>
-            {/* <Modal show={receivedFilePreview !== "" || sending || receiving || sentRequest || rejected || requested}
+            <Modal show={receivedFilePreview !== ""}
                 onClose={() => {
-                    if (!sending || !receiving || !sentRequest || !requested)
-                        setReceivedFilePreview("");
-                    setRejected(false);
+                    setReceivedFilePreview("");
                 }}>
                 <Modal.Content>
-
-                    {requested &&
-                        <ShareRequest acceptRequest={acceptRequest} rejectRequest={rejectRequest}
-                            peerUsername={peerUsername} />
-                    }
-                    {(sending || receiving || sentRequest) &&
-                        <Loader
-                            text={sending ? "the picture is being sent, please wait..." : sentRequest ? "Wait till user accepts your request" : "receiving picture, please wait... "} />
-                    }
-                    {rejected &&
-                        <UserInfo myUsername={peerUsername}
-                            subtext={`${peerUsername} Rejected your request, sorry!`}
-                            color="#ffcac8"
-
-                        />}
-
-                    {receivedFilePreview &&
-                        <React.Fragment>
-                            <UserInfo myUsername={peerUsername} subtext={`${peerUsername} has sent you this image`}
-                                color="#c7ffcc" />
-                            <Image src={receivedFilePreview} />
-                        </React.Fragment>
-                    }
-
-
+                    <React.Fragment>
+                        <div>Preview of downloaded file</div>
+                        <Image src={receivedFilePreview} />
+                    </React.Fragment>
                 </Modal.Content>
-            </Modal> */}
+            </Modal>
             <Container fluid>
                 <Columns>
                     <Columns.Column size="three-fifths">
