@@ -25,6 +25,7 @@ function App() {
     const [usersList, setUsersList] = useState([]);
     // const [peerUsername, setPeerUsername] = useState("");
     // const [peerSignal, setPeerSignal] = useState("");
+    const [expectedPartitionIds, setExpectedPartitionIds] = useState([]);
     const [allPartitions, setAllPartitions] = useState({}); // {'00': <binary data for large00>, '01': <binary data of large01>, ...}}
     const SOCKET_EVENT = {
         CONNECTED: "connected",
@@ -62,13 +63,25 @@ function App() {
         peer.on("connect", () => {
             //setReceiving(true);
         });
+        var partitionName;
         const fileChunks = [];
         peer.on('data', data => {
-
-            if (data.toString() === 'EOF') {
+            if (data.toString().startsWith('PARTITION:')) {
+                partitionName = data.toString().split(':')[1];
+                console.log(`Start receiving partion: ${partitionName}`);
+            } else if (data.toString() === 'EOF') {
                 // Once, all the chunks are received, combine them to form a Blob
-                const file = new Blob(fileChunks);
-                setReceivedFilePreview(URL.createObjectURL(file));
+                setAllPartitions({ ...allPartitions, partitionName: fileChunks })
+                var keys = Object.keys(allPartitions);
+                if (keys.length === expectedPartitionIds.length) {
+                    // FIXME merge the chunks together
+                    var allChunks = [];
+                    for (const paritionId in expectedPartitionIds) {
+                        allChunks = [...allChunks, allPartitions[paritionId]];
+                    }
+                    const file = new Blob(allChunks);
+                    setReceivedFilePreview(URL.createObjectURL(file));
+                }
                 // setReceiving(false);
             } else {
                 // Keep appending various file chunks
@@ -112,7 +125,6 @@ function App() {
             while (buffer.byteLength) {
                 const chunk = buffer.slice(0, chunkSize);
                 buffer = buffer.slice(chunkSize, buffer.byteLength);
-
                 // Off goes the chunk!
                 peer.send(chunk);
             }
@@ -125,12 +137,14 @@ function App() {
     const downloadPartitions = () => {
         usersList.forEach(u => {
             var partitions = u.partitions;
+            setExpectedPartitionIds([...expectedPartitionIds, partitions]);
             for (const partition in partitions) {
                 const filename = `large${partition}`;
                 console.log(`Start downloading ${filename}...`);
                 socket.current.emit(SOCKET_EVENT.REQUEST_PARTITION, { from: myUsername, to: u.username, partition: partition })
             }
         })
+        expectedPartitionIds.sort();
     }
 
     const SERVER_URL = "ws://localhost:7000/";
